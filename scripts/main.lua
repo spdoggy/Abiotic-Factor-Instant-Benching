@@ -25,6 +25,7 @@ ModVersion = "1.0.0"
 DebugMode = false
 local GameInstanceCache = CreateInvalidObject() ---@type UGameInstance
 local myPlayerControllerCache = CreateInvalidObject() ---@type AAbioticPlayerController
+local TheWorld = CreateInvalidObject()  ---@cast WorldCache UWorld
 
 print("Starting Instant Benching mod initialization")
 
@@ -37,32 +38,25 @@ local function handle_minigame(Context)
     end
 end
 
-local function handle_throw(Context)
-    -- local player_cont = Context:get() ---@type AAbioticPlayerController
-    -- local owner = player_cont:GetOwner()
-    -- print("player_cont: " .. player_cont:GetFullName())
-    -- print("player_cont: " .. player_cont:GetClass():GetFullName())
-    -- print("owner: " .. owner:GetFullName())
-    -- print("owner: " .. owner:GetClass():GetFullName())
 
-
-
-
-    -- print(">> Instant Benching: Throw Hook Caught << ")
-    -- prog = player_cont.CharacterProgressionComponent
-    -- print("CharacterProgressionComponent: " .. prog:GetFullName())
-    -- print("CharacterProgressionComponentClassName: " .. prog:GetClass():GetFullName())
-
-    
-    -- sprint_check = prog.SprintingXPCheckInterval
-    -- prog.SprintingXPCheckInterval = 0.01
-    -- --print("sprint_check: " .. sprint_check:GetFullName())
-    -- --print("sprint_check: " .. sprint_check:GetClass():GetFullName())
-
-    
-    -- print("SprintingXPCheckInterval")
-    -- print(sprint_check)
+function GetWorld()
+    if TheWorld ~= nil and TheWorld.IsValid ~= nil and TheWorld:IsValid() then
+        return TheWorld
+    else
+        local gameState = FindFirstOf("Abiotic_Survival_GameState_C")
+        if gameState:IsValid() then
+            local world = gameState:GetWorld()
+            if world and world:IsValid() then
+                TheWorld = world
+                return world
+            end
+        end
+    end
+    print("[GetWorld]: Invalid World")
+    return TheWorld
 end
+
+
 
 ExecuteInGameThread(function()
     print("Initializing Instant Benching hooks")
@@ -80,17 +74,6 @@ ExecuteInGameThread(function()
         end
     end)
 
-    ExecuteWithDelay(2500, function()
-    local okHook, errHook = pcall(RegisterHook,
-        "/Game/Blueprints/Characters/Abiotic_PlayerCharacter.Abiotic_PlayerCharacter_C:Local_ThrowWeapon",
-        handle_throw
-    )
-        if not okHook then
-            print("Instant Benching Hook registration failed: %s", tostring(errHook))
-        else
-            print("Instant Benching Hook registration success: Local_ThrowWeapon")
-        end
-    end)
 
     print("Instant Benching Hooks initialized")
 end)
@@ -101,6 +84,40 @@ if ToggleKey and ToggleKeyModifiers then
         ExecuteInGameThread(function()
             -- test stuff here
 
+            if GameInstanceCache == nil or GameInstanceCache.IsValid == nil or not GameInstanceCache:IsValid() then
+                local world = GetWorld()
+                GameInstanceCache = world.OwningGameInstance
+            end
+
+            if GameInstanceCache ~= nil and GameInstanceCache.IsValid ~= nil and GameInstanceCache:IsValid() then
+                local local_players = GameInstanceCache.LocalPlayers
+                if local_players and #GameInstanceCache.LocalPlayers > 0  then
+                    local localPlayer = local_players[1]
+                    myPlayerControllerCache = localPlayer.PlayerController
+                    local my_player = myPlayerControllerCache.MyPlayerCharacter
+                    if ModEnabled then
+                        local warn_beep = false
+                        local green = 0
+                        local msg = "Instant Benching: Enabled"
+                        local fText = FText(msg)
+                        if fText then
+                            pcall(function()
+                                my_player:Client_DisplayWarningMessage(fText, green, warn_beep)
+                            end)
+                        end
+                    else
+                        local warn_beep = false
+                        local red = 3
+                        local msg = "Instant Benching: Disabled"
+                        local fText = FText(msg)
+                        if fText then
+                            pcall(function()
+                                my_player:Client_DisplayWarningMessage(fText, red, WarningBeep)
+                            end)
+                        end
+                    end
+                end
+            end
         end)
     end
 
