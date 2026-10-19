@@ -6,7 +6,7 @@
 
 ---------- Configurations ----------
 -- Enable mod from the start
-ModEnabled = true
+ModEnabled = false
 
 -------------- Hotkeys -------------
 -- Possible keys: https://github.com/UE4SS-RE/RE-UE4SS/blob/main/docs/lua-api/table-definitions/key.md
@@ -23,13 +23,15 @@ ToggleKeyModifiers = {ModifierKey.CONTROL}
 ModName = "InstantBenching"
 ModVersion = "1.0.0"
 DebugMode = false
+local GameInstanceCache = CreateInvalidObject() ---@type UGameInstance
+local myPlayerControllerCache = CreateInvalidObject() ---@type AAbioticPlayerController
 
-LogInfo("Starting Instant Benching mod initialization")
+print("Starting Instant Benching mod initialization")
 
 
 local function handle_minigame(Context)
     local player = Context:get() ---@type AAbioticPlayerController
-    -- print(">> Instant Benching: Minigame Hook Caught << ")
+    --print(">> Instant Benching: Minigame Hook Caught << ")
     if ModEnabled then
         player.Request_BenchPressReward(1000)
     end
@@ -63,7 +65,7 @@ local function handle_throw(Context)
 end
 
 ExecuteInGameThread(function()
-    LogInfo("Initializing Instant Benching hooks")
+    print("Initializing Instant Benching hooks")
 
     --void Request_SendTextChatMessage(FString MessageToSend);
     ExecuteWithDelay(2500, function()
@@ -90,19 +92,21 @@ ExecuteInGameThread(function()
         end
     end)
 
-    LogInfo("Instant Benching Hooks initialized")
+    print("Instant Benching Hooks initialized")
 end)
 
 if ToggleKey and ToggleKeyModifiers then
     local function SetModState(Enable)
+        ModEnabled = not ModEnabled
         ExecuteInGameThread(function()
             -- test stuff here
+
         end)
     end
-    
+
     RegisterKeyBind(ToggleKey, ToggleKeyModifiers, function()
-        SetModState(not ModEnabled)
+        SetModState(ModEnabled)
     end)
 end
 
-LogInfo("Mod loaded successfully")
+print("Mod loaded successfully")
